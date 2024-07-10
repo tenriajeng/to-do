@@ -14,6 +14,8 @@ bcrypt = "*"
 cerberus = "*"
 pyjwt = "*"
 psycopg2-binary = "*"
+flask-cors = "*"
+flask-jwt-extended = "*"
 
 [dev-packages]
 

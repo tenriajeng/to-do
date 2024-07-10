@@ -15,8 +15,9 @@ def token_required(f):
 
         try:
             data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=["HS256"])
-            current_user = UserModel.query.get(data['id'])
-            if current_user:
+            current_user = UserModel.query.filter_by(id=data['id']).first()
+           
+            if current_user is not None:
                 return f(*args, **kwargs)
             else:
                 return jsonify({"message": "Token is invalid"}), 401

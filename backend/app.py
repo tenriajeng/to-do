@@ -1,6 +1,8 @@
 from flask import Flask
 from flask_migrate import Migrate
 from flask_login import LoginManager
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager
 from db import db
 from controllers.auth_controller import auth_blueprint 
 from controllers.status_controller import statuses_blueprint 
@@ -11,11 +13,20 @@ from config.config import Config
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    CORS(app,
+         origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+         supports_credentials=True,
+         methods=["*"],
+         resources={r"/*": {"origins": "*"}},
+         allow_headers=['Content-Type', 'Authorization', 'XCSRF-Token'])
     
     db.init_app(app)
     Migrate(app, db)
     init_login_manager(app)
     register_blueprints(app)
+
+    jwt = JWTManager(app)
 
     with app.app_context():
         db.create_all()

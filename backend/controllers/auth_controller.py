@@ -1,8 +1,7 @@
-from flask import Blueprint, current_app, request
-import jwt
-import datetime
+from flask import Blueprint, request
+from flask_jwt_extended import create_access_token
 from models.user import UserModel 
-from flask_login import login_user, logout_user, login_required 
+from flask_login import logout_user, login_required 
 from db import db
 from cerberus import Validator
 from validation.user_schema import register_schema, login_schema
@@ -46,12 +45,7 @@ def login():
 
     user = UserModel.query.filter_by(email=email).first()
     if user and user.check_password(password):
-        token = jwt.encode({
-            'id': user.id,
-            'exp': datetime.datetime.now() + datetime.timedelta(hours=24)
-        }, current_app.config['SECRET_KEY'], algorithm="HS256")
-        
-        login_user(user)
+        token = create_access_token(identity=user.id, additional_claims= {"email": user.email, "id": user.id})
 
         return ResponseHandler.success(data={"message": "Successfully logged in", "token": token}, status=200)
     else:

@@ -6,39 +6,50 @@ from db import db
 from utils.handle_response import ResponseHandler 
 from cerberus import Validator
 from validation.status_schema import status_create_schema
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 statuses_blueprint = Blueprint('statuses', __name__, url_prefix='/statuses')
 
 @statuses_blueprint.route('/', methods=['GET'])
-@token_required
+# @token_required
 def get_statuses():
-    statuses = StatusModel.query.filter_by(user_id=current_user.id).all()
+     # Print all headers
+    print(request.headers)
+    
+    # Print specific header, for example, Authorization header
+    auth_header = request.headers.get('Authorization')
+    print(f"Authorization Header: {auth_header}")
+    
+    # user_id = get_jwt_identity()
+    statuses = StatusModel.query.filter_by(user_id=1).all()
     statuses_list = [status.to_dict() for status in statuses]
     
     return ResponseHandler.success(data=statuses_list)
 
 @statuses_blueprint.route('/<int:status_id>', methods=['GET'])
-@token_required
+@jwt_required()
 def get_status_detail(status_id):
-    status = StatusModel.query.filter_by(id=status_id, user_id=current_user.id).first()
+    user_id = get_jwt_identity()
+    status = StatusModel.query.filter_by(id=status_id, user_id=user_id).first()
     if not status:
         return ResponseHandler.error(message='Status not found', status=404)
     
     return ResponseHandler.success(data=status.to_dict())
 
 @statuses_blueprint.route('/', methods=['POST'])
-@token_required
+@jwt_required()
 def create_status():
+    user_id = get_jwt_identity()
     data = request.json
     
     validator = Validator(status_create_schema)
     if not validator.validate(data):
         return ResponseHandler.error(message='Invalid data', status=400, data=validator.errors)
 
-    next_order = StatusModel.query.filter_by(user_id=current_user.id).count()
+    next_order = StatusModel.query.filter_by(user_id=1).count()
     new_status = StatusModel(
         name=data.get('name'),
-        user_id=current_user.id,
+        user_id=user_id,
         order=next_order
     )
 
@@ -48,15 +59,15 @@ def create_status():
     return ResponseHandler.success(data=new_status.to_dict(), status=201)
 
 @statuses_blueprint.route('/<int:status_id>', methods=['PUT'])
-@token_required
+@jwt_required()
 def update_status(status_id):
     data = request.json
-    
+    user_id = get_jwt_identity()
     validator = Validator(status_create_schema)
     if not validator.validate(data):
         return ResponseHandler.error(message='Invalid data', status=400, data=validator.errors)
     
-    status = StatusModel.query.filter_by(id=status_id, user_id=current_user.id).first()
+    status = StatusModel.query.filter_by(id=status_id, user_id=user_id).first()
     if not status:
         return ResponseHandler.error(message='Status not found', status=404)
 
@@ -66,9 +77,10 @@ def update_status(status_id):
     return ResponseHandler.success(data=status.to_dict())
 
 @statuses_blueprint.route('/<int:status_id>', methods=['DELETE'])
-@token_required
+@jwt_required()
 def delete_status(status_id):
-    status = StatusModel.query.filter_by(id=status_id, user_id=current_user.id).first()
+    user_id = get_jwt_identity()
+    status = StatusModel.query.filter_by(id=status_id, user_id=user_id).first()
     if not status:
         return ResponseHandler.error(message='Status not found', status=404)
 
