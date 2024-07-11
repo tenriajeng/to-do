@@ -4,7 +4,7 @@ import UserProfile from './UserProfile'
 
 const Header = () => {
     const navigate = useNavigate()
-    const token = 'asd'
+    const token = localStorage.getItem('token')
 
     const handleLogout = () => {
         localStorage.removeItem('token')

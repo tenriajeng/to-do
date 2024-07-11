@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { v4 as uuidv4 } from 'uuid'
 
 import {
     DndContext,
@@ -27,6 +26,8 @@ import { Input } from '../components/ui/input'
 import { Button } from '../components/ui/button'
 import axios from 'axios'
 import { useForm } from 'react-hook-form'
+import { apiRequest } from '../api/apiUtils'
+import { redirect } from 'react-router-dom'
 
 type DNDType = {
     id: UniqueIdentifier
@@ -44,18 +45,10 @@ export default function Home() {
     const [currentContainerId, setCurrentContainerId] =
         useState<UniqueIdentifier>()
     const [containerName, setContainerName] = useState('')
-    const [itemName, setItemName] = useState('')
     const [showAddContainerModal, setShowAddContainerModal] = useState(false)
     const [showAddItemModal, setShowAddItemModal] = useState(false)
     const { register, handleSubmit, setValue, reset } = useForm()
     const [selectedItem, setSelectedItem] = useState(null)
-
-    const token =
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTcyMDY4OTAwMCwianRpIjoiZmFjNGEyZjAtM2NhMy00Mzc4LTljMWEtZDE1MjA4ODViNGJkIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6MSwibmJmIjoxNzIwNjg5MDAwLCJjc3JmIjoiYzBkMjA0YWEtMTU2ZS00NTQ4LTlkY2YtMjJlYWI2ZDM5YTIyIiwiZXhwIjoxNzIwNjg5OTAwfQ.VQJ1kvPVH1MG189S0EqVgd0tQLnPo9qi-wJozaS7lwo'
-    const headers = {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + token,
-    }
 
     const handleItemClick = (item: any, status_id: UniqueIdentifier) => {
         item.status_id = status_id
@@ -64,14 +57,22 @@ export default function Home() {
         reset(item)
     }
 
+    const handleDelete = async (id: UniqueIdentifier) => {
+        try {
+            const newId = parseInt(id.toString().replace('item-', ''), 10)
+            await apiRequest('DELETE', `/tasks/${newId}`)
+            fetchData()
+        } catch (error) {
+            console.error('Failed to delete the task', error)
+        }
+    }
+
     useEffect(() => {
         setValue('status_id', currentContainerId)
     }, [currentContainerId, setValue])
 
     const onSubmit = async (data: any) => {
         try {
-            console.log(data)
-
             data.status_id = parseInt(
                 data.status_id.replace('container-', ''),
                 10
@@ -80,13 +81,12 @@ export default function Home() {
             let response
             if (data.id) {
                 let { id, ...requestData } = data
-
-                id = id = parseInt(id.replace('item-', ''), 10)
-                const url = `http://127.0.0.1:5000/tasks/${id}`
-                response = await axios.put(url, requestData, { headers })
+                id = parseInt(id.replace('item-', ''), 10)
+                const url = `/tasks/${id}`
+                response = await apiRequest('PUT', url, requestData)
             } else {
-                const url = 'http://127.0.0.1:5000/tasks'
-                response = await axios.post(url, data, { headers })
+                const url = '/tasks'
+                response = await apiRequest('POST', url, data)
             }
 
             reset({ title: '', description: '', status_id: '' })
@@ -98,27 +98,20 @@ export default function Home() {
     }
 
     const fetchData = async () => {
-        try {
-            const response = await axios.get('http://127.0.0.1:5000/statuses', {
-                headers,
-            })
+        const response = await apiRequest('GET', '/statuses')
 
-            const data = response.data
-            console.log(data.data)
+        const data = response.data
 
-            const formattedData = data.data.map((container: any) => ({
-                id: `container-${container.id}`,
-                title: container.name,
-                items: container.tasks.map((item: any) => ({
-                    id: `item-${item.id}`,
-                    title: item.title,
-                    description: item.description,
-                })),
-            }))
-            setContainers(formattedData)
-        } catch (error) {
-            console.error('Error fetching data:', error)
-        }
+        const formattedData = data.data.map((container: any) => ({
+            id: `container-${container.id}`,
+            title: container.name,
+            items: container.tasks.map((item: any) => ({
+                id: `item-${item.id}`,
+                title: item.title,
+                description: item.description,
+            })),
+        }))
+        setContainers(formattedData)
     }
 
     useEffect(() => {
@@ -129,13 +122,11 @@ export default function Home() {
         if (!containerName) return
 
         try {
-            const url = 'http://127.0.0.1:5000/statuses'
             const body = {
                 name: containerName,
             }
 
-            const response = await axios.post(url, body, { headers })
-            console.log(response)
+            const response = await apiRequest('POST', '/statuses', body)
 
             if (response.status !== 201) {
                 throw new Error('Network response was not ok')
@@ -516,6 +507,9 @@ export default function Home() {
                                                             container.id
                                                         )
                                                     }
+                                                    handleDelete={() =>
+                                                        handleDelete(i.id)
+                                                    }
                                                 />
                                             ))}
                                         </div>
@@ -534,6 +528,9 @@ export default function Home() {
                                         description={''}
                                         onClick={() =>
                                             handleItemClick(activeId, activeId)
+                                        }
+                                        handleDelete={() =>
+                                            handleDelete(activeId)
                                         }
                                     />
                                 )}
@@ -557,6 +554,9 @@ export default function Home() {
                                                             i,
                                                             activeId
                                                         )
+                                                    }
+                                                    handleDelete={() =>
+                                                        handleDelete(i.id)
                                                     }
                                                 />
                                             )
