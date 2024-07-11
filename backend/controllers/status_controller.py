@@ -71,7 +71,7 @@ def update_status(status_id):
 
     return ResponseHandler.success(data=status.to_dict())
 
-@statuses_blueprint.route('/statuses/<int:status_id>', methods=['DELETE'])
+@statuses_blueprint.delete('/status/<int:status_id>')
 @cross_origin(origin='localhost', headers=['Content-Type','Authorization'])
 @jwt_required()
 def delete_status(status_id):

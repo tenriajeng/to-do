@@ -49,7 +49,7 @@ export default function Home() {
     const handleDeleteContainer = async (id: UniqueIdentifier) => {
         try {
             const newId = parseInt(id.toString().replace('container-', ''), 10)
-            await apiRequest('DELETE', `/statuses/${newId}`)
+            await apiRequest('DELETE', `/status/${newId}`)
             fetchData()
         } catch (error) {
             console.error('Failed to delete the task', error)
