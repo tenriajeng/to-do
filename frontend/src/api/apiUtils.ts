@@ -23,7 +23,6 @@ export const apiRequest = async (method: Method, url: string, data?: any) => {
         headers: getHeaders(),
         data,
     }
-    console.log(config)
 
     try {
         const response = await axios(config)

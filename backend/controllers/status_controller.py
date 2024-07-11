@@ -1,6 +1,4 @@
-from flask import Blueprint, request
-from flask_login import current_user
-from middleware.token_required import token_required
+from flask import Blueprint, request 
 from models.status import StatusModel
 from db import db
 from utils.handle_response import ResponseHandler 
@@ -55,6 +53,7 @@ def create_status():
     return ResponseHandler.success(data=new_status.to_dict(), status=201)
 
 @statuses_blueprint.route('/statuses/<int:status_id>', methods=['PUT'])
+@cross_origin(origin='localhost', headers=['Content-Type','Authorization'])
 @jwt_required()
 def update_status(status_id):
     data = request.json
@@ -73,6 +72,7 @@ def update_status(status_id):
     return ResponseHandler.success(data=status.to_dict())
 
 @statuses_blueprint.route('/statuses/<int:status_id>', methods=['DELETE'])
+@cross_origin(origin='localhost', headers=['Content-Type','Authorization'])
 @jwt_required()
 def delete_status(status_id):
     user_id = get_jwt_identity()
