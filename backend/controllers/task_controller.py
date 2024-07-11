@@ -6,26 +6,29 @@ from db import db
 from utils.handle_response import ResponseHandler
 from cerberus import Validator
 from validation.task_schema import task_create_schema, task_update_schema
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_cors import cross_origin
 
-tasks_blueprint = Blueprint('tasks', __name__, url_prefix='/tasks')
+tasks_blueprint = Blueprint('tasks', __name__)
 
-@tasks_blueprint.route('/', methods=['GET'])
-@token_required
+@tasks_blueprint.route('/tasks', methods=['GET'])
+@jwt_required()
 def get_tasks():
-    tasks = TaskModel.query.filter_by(user_id=current_user.id).all()
+    tasks = TaskModel.query.filter_by(user_id= get_jwt_identity()).all()
     tasks_list = [task.to_dict() for task in tasks]
     return ResponseHandler.success(data=tasks_list)
 
-@tasks_blueprint.route('/<int:task_id>', methods=['GET'])
-@token_required
+@tasks_blueprint.route('/tasks/<int:task_id>', methods=['GET'])
+@jwt_required()
 def get_task_detail(task_id):
-    task = TaskModel.query.filter_by(id=task_id, user_id=current_user.id).first()
+    task = TaskModel.query.filter_by(id=task_id, user_id= get_jwt_identity()).first()
     if not task:
         return ResponseHandler.error(message='Task not found', status=404)
     return ResponseHandler.success(data=task.to_dict())
 
-@tasks_blueprint.route('/', methods=['POST'])
-@token_required
+@tasks_blueprint.route('/tasks', methods=['POST'])
+@cross_origin(origin='localhost', headers=['Content-Type','Authorization'])
+@jwt_required()
 def create_task():
     data = request.json
 
@@ -36,7 +39,7 @@ def create_task():
     new_task = TaskModel(
         title=data.get('title'),
         description=data.get('description'),
-        user_id=current_user.id,
+        user_id= get_jwt_identity(),
         status_id=data.get('status_id')
     )
     db.session.add(new_task)
@@ -44,8 +47,8 @@ def create_task():
 
     return ResponseHandler.success(data=new_task.to_dict(), status=201)
 
-@tasks_blueprint.route('/<int:task_id>', methods=['PUT'])
-@token_required
+@tasks_blueprint.route('/tasks/<int:task_id>', methods=['PUT'])
+@jwt_required()
 def update_task(task_id):
     data = request.json
 
@@ -53,7 +56,7 @@ def update_task(task_id):
     if not validator.validate(data):
         return ResponseHandler.error(message='Invalid data', status=400, data=validator.errors)
     
-    task = TaskModel.query.filter_by(id=task_id, user_id=current_user.id).first()
+    task = TaskModel.query.filter_by(id=task_id, user_id= get_jwt_identity()).first()
     if not task:
         return ResponseHandler.error(message='Task not found', status=404)
 
@@ -64,10 +67,10 @@ def update_task(task_id):
     
     return ResponseHandler.success(data=task.to_dict())
 
-@tasks_blueprint.route('/<int:task_id>', methods=['DELETE'])
-@token_required
+@tasks_blueprint.route('/tasks/<int:task_id>', methods=['DELETE'])
+@jwt_required()
 def delete_task(task_id):
-    task = TaskModel.query.filter_by(id=task_id, user_id=current_user.id).first()
+    task = TaskModel.query.filter_by(id=task_id, user_id= get_jwt_identity()).first()
     if not task:
         return ResponseHandler.error(message='Task not found', status=404)
 

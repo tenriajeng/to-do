@@ -8,7 +8,7 @@ class StatusModel(db.Model):
 
     id = mapped_column(Integer, primary_key=True)
     user_id = mapped_column(Integer, ForeignKey('users.id'), nullable=False)
-    name = mapped_column(String(50), unique=True, nullable=False)
+    name = mapped_column(String(50), nullable=False)
     order = mapped_column(Integer, nullable=False, default=0)
     created_at = mapped_column(DateTime, default=datetime.now)
     updated_at = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now)

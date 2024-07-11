@@ -28,6 +28,7 @@ import Modal from '../components/Modal'
 import { Input } from '../components/ui/input'
 import { Button } from '../components/ui/button'
 import axios from 'axios'
+import { useForm } from 'react-hook-form'
 
 type DNDType = {
     id: UniqueIdentifier
@@ -47,16 +48,55 @@ export default function Home() {
     const [itemName, setItemName] = useState('')
     const [showAddContainerModal, setShowAddContainerModal] = useState(false)
     const [showAddItemModal, setShowAddItemModal] = useState(false)
+    const { register, handleSubmit, reset } = useForm()
+
+    const token =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTcyMDYxOTA1OCwianRpIjoiNGNmMTZiZmEtN2M1MS00ZDFhLWI5NzUtNzAxMGFiYmRmZWYwIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6MSwibmJmIjoxNzIwNjE5MDU4LCJjc3JmIjoiYzRlNzllNmEtNWNiNy00Y2YyLWIyOTgtYzdmNjAxODNmOTY5IiwiZXhwIjoxNzIwNjE5OTU4fQ.zKdmmYal5eXwJQzU-kkv8mzTYJYidqynq8PfYAy9TkE'
+    const headers = {
+        Authorization: 'Bearer ' + token,
+    }
+
+    const onSubmit = async (data: any) => {
+        try {
+            console.log(data)
+            const url = 'http://127.0.0.1:5000/tasks'
+            const response = await axios.post(url, data, { headers })
+            console.log('response', response)
+
+            // Assuming you have containers state and setContainers function defined somewhere
+            // Copy the current state of containers
+            const updatedContainers = [...containers]
+
+            // Assuming you have a way to get the current container id
+            const currentContainer = updatedContainers.find(
+                (item) => item.id === currentContainerId
+            )
+
+            if (currentContainer) {
+                // Add the new item to the current container
+                currentContainer.items.push({
+                    id: response.data.data.id,
+                    title: response.data.data.title,
+                })
+
+                // Update the containers state with the updated container
+                setContainers(updatedContainers)
+                reset() // Reset form fields
+                setShowAddItemModal(false) // Close the modal after adding the item
+            } else {
+                console.error('Current container not found')
+            }
+        } catch (error) {
+            console.error('Error adding item:', error)
+            // Handle error scenarios here
+        }
+    }
 
     useEffect(() => {
         const fetchData = async () => {
-            const token =
-                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTcyMDYwMTIzMCwianRpIjoiNDYwY2QzOWUtMmYyZi00YzYxLWFhZDgtMGFhMmMwYjYwNGJmIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6MSwibmJmIjoxNzIwNjAxMjMwLCJjc3JmIjoiYWU1ZjMxMDAtYWJjNi00MDA1LTgwMzYtM2JmNWVjMTM4NTdjIiwiZXhwIjoxNzIwNjAyMTMwLCJlbWFpbCI6ImlsaGFtQG1haWwuY29tIiwiaWQiOjF9.mY0k9tsfH9sI6LM1pqxd3NEpnJ41coXAiBSTkt6laoA'
-
-            const headers = { Authorization: 'Bearer ' + token }
             try {
                 const response = await axios.get(
-                    'http://localhost:5000/statuses',
+                    'http://127.0.0.1:5000/statuses',
                     { headers }
                 )
 
@@ -80,23 +120,50 @@ export default function Home() {
         fetchData()
     }, [])
 
-    const onAddContainer = () => {
+    const onAddContainer = async () => {
         if (!containerName) return
-        const id = `container-${uuidv4()}`
-        setContainers([
-            ...containers,
-            {
-                id,
+
+        try {
+            const url = 'http://127.0.0.1:5000/statuses'
+            const body = {
+                name: containerName,
+            }
+
+            const response = await axios.post(url, body, { headers })
+            console.log(response)
+
+            if (response.status !== 201) {
+                throw new Error('Network response was not ok')
+            }
+
+            const { id } = response.data.data
+            const newContainer = {
+                id: `container-${id}`,
                 title: containerName,
                 items: [],
-            },
-        ])
-        setContainerName('')
-        setShowAddContainerModal(false)
+            }
+
+            setContainers([...containers, newContainer])
+            setContainerName('')
+            setShowAddContainerModal(false)
+        } catch (error) {
+            console.error('Error:', error)
+        }
     }
 
-    const onAddItem = () => {
+    const onAddItem = async () => {
         if (!itemName) return
+
+        const body = {
+            title: 'makan pagi',
+            description: 'harus makan sebelum jam 10',
+            status_id: 1,
+        }
+
+        const response = await axios.post('http://127.0.0.1:5000/tasks', body, {
+            headers,
+        })
+
         const id = `item-${uuidv4()}`
         const container = containers.find(
             (item) => item.id === currentContainerId
@@ -398,19 +465,36 @@ export default function Home() {
                 showModal={showAddItemModal}
                 setShowModal={setShowAddItemModal}
             >
-                <div className="flex flex-col w-full items-start gap-y-4">
+                <form
+                    onSubmit={handleSubmit(onSubmit)}
+                    className="flex flex-col w-full items-start gap-y-4"
+                >
                     <h1 className="text-gray-800 text-3xl font-bold">
                         Add Item
                     </h1>
                     <Input
                         type="text"
                         placeholder="Item Title"
-                        name="itemname"
-                        value={itemName}
-                        onChange={(e) => setItemName(e.target.value)}
+                        {...register('title', { required: true })}
+                        className="input-field"
                     />
-                    <Button onClick={onAddItem}>Add Item</Button>
-                </div>
+                    <Input
+                        type="text"
+                        placeholder="Item Description"
+                        {...register('description')}
+                        className="input-field"
+                    />
+                    <input
+                        type="number"
+                        placeholder="Status ID"
+                        // value={currentContainerId}
+                        {...register('status_id', { valueAsNumber: true })}
+                        className="input-field"
+                    />
+                    <Button type="submit" className="btn-primary">
+                        Add Item
+                    </Button>
+                </form>
             </Modal>
             <div className="flex items-center justify-between gap-y-2">
                 <h1 className="text-gray-800 text-3xl font-bold">Tasks</h1>

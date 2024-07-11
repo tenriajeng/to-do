@@ -45,9 +45,9 @@ def login():
 
     user = UserModel.query.filter_by(email=email).first()
     if user and user.check_password(password):
-        token = create_access_token(identity=user.id, additional_claims= {"email": user.email, "id": user.id})
+        token = create_access_token(identity=user.id)
 
-        return ResponseHandler.success(data={"message": "Successfully logged in", "token": token}, status=200)
+        return ResponseHandler.success(data={"message": "Successfully logged in", "access_token": token}, status=200)
     else:
         return ResponseHandler.error(message="Invalid email or password", status=401)
 

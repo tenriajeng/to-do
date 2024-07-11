@@ -7,26 +7,21 @@ from utils.handle_response import ResponseHandler
 from cerberus import Validator
 from validation.status_schema import status_create_schema
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_cors import cross_origin
 
-statuses_blueprint = Blueprint('statuses', __name__, url_prefix='/statuses')
+statuses_blueprint = Blueprint('statuses', __name__)
 
-@statuses_blueprint.route('/', methods=['GET'])
-# @token_required
-def get_statuses():
-     # Print all headers
-    print(request.headers)
-    
-    # Print specific header, for example, Authorization header
-    auth_header = request.headers.get('Authorization')
-    print(f"Authorization Header: {auth_header}")
-    
-    # user_id = get_jwt_identity()
-    statuses = StatusModel.query.filter_by(user_id=1).all()
+@statuses_blueprint.route('/statuses', methods=['GET'])
+@cross_origin(origin='localhost', headers=['Content-Type','Authorization'])
+@jwt_required()
+def get_statuses(): 
+    user_id = get_jwt_identity()
+    statuses = StatusModel.query.filter_by(user_id=user_id).all()
     statuses_list = [status.to_dict() for status in statuses]
     
     return ResponseHandler.success(data=statuses_list)
 
-@statuses_blueprint.route('/<int:status_id>', methods=['GET'])
+@statuses_blueprint.route('/statuses/<int:status_id>', methods=['GET'])
 @jwt_required()
 def get_status_detail(status_id):
     user_id = get_jwt_identity()
@@ -36,7 +31,8 @@ def get_status_detail(status_id):
     
     return ResponseHandler.success(data=status.to_dict())
 
-@statuses_blueprint.route('/', methods=['POST'])
+@statuses_blueprint.route('/statuses', methods=['POST'])
+@cross_origin(origin='localhost', headers=['Content-Type','Authorization'])
 @jwt_required()
 def create_status():
     user_id = get_jwt_identity()
@@ -58,7 +54,7 @@ def create_status():
 
     return ResponseHandler.success(data=new_status.to_dict(), status=201)
 
-@statuses_blueprint.route('/<int:status_id>', methods=['PUT'])
+@statuses_blueprint.route('/statuses/<int:status_id>', methods=['PUT'])
 @jwt_required()
 def update_status(status_id):
     data = request.json
@@ -76,7 +72,7 @@ def update_status(status_id):
 
     return ResponseHandler.success(data=status.to_dict())
 
-@statuses_blueprint.route('/<int:status_id>', methods=['DELETE'])
+@statuses_blueprint.route('/statuses/<int:status_id>', methods=['DELETE'])
 @jwt_required()
 def delete_status(status_id):
     user_id = get_jwt_identity()
