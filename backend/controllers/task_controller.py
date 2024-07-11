@@ -12,6 +12,7 @@ from flask_cors import cross_origin
 tasks_blueprint = Blueprint('tasks', __name__)
 
 @tasks_blueprint.route('/tasks', methods=['GET'])
+@cross_origin(origin='localhost', headers=['Content-Type','Authorization'])
 @jwt_required()
 def get_tasks():
     tasks = TaskModel.query.filter_by(user_id= get_jwt_identity()).all()
@@ -19,6 +20,7 @@ def get_tasks():
     return ResponseHandler.success(data=tasks_list)
 
 @tasks_blueprint.route('/tasks/<int:task_id>', methods=['GET'])
+@cross_origin(origin='localhost', headers=['Content-Type','Authorization'])
 @jwt_required()
 def get_task_detail(task_id):
     task = TaskModel.query.filter_by(id=task_id, user_id= get_jwt_identity()).first()
@@ -48,6 +50,7 @@ def create_task():
     return ResponseHandler.success(data=new_task.to_dict(), status=201)
 
 @tasks_blueprint.route('/tasks/<int:task_id>', methods=['PUT'])
+@cross_origin(origin='localhost', headers=['Content-Type','Authorization'])
 @jwt_required()
 def update_task(task_id):
     data = request.json
@@ -68,6 +71,7 @@ def update_task(task_id):
     return ResponseHandler.success(data=task.to_dict())
 
 @tasks_blueprint.route('/tasks/<int:task_id>', methods=['DELETE'])
+@cross_origin(origin='localhost', headers=['Content-Type','Authorization'])
 @jwt_required()
 def delete_task(task_id):
     task = TaskModel.query.filter_by(id=task_id, user_id= get_jwt_identity()).first()

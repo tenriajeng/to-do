@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import clsx from 'clsx'
 import { Button } from '../ui/button'
+import { MoveIcon } from '@radix-ui/react-icons'
 
 import { UniqueIdentifier } from '@dnd-kit/core'
 
@@ -43,7 +44,7 @@ const Container = ({
                 transform: CSS.Translate.toString(transform),
             }}
             className={clsx(
-                'w-full h-full p-4 bg-gray-50 rounded-xl flex flex-col gap-y-4',
+                'w-full max-h-96 p-4 bg-gray-50 rounded-xl flex flex-col gap-y-4',
                 isDragging && 'opacity-50'
             )}
         >
@@ -56,11 +57,10 @@ const Container = ({
                     className="border p-2 text-xs rounded-xl shadow-lg hover:shadow-xl"
                     {...listeners}
                 >
-                    Drag Handle
+                    <MoveIcon />
                 </button>
             </div>
-
-            {children}
+            <div className="overflow-y-auto flex-1">{children}</div>
             <Button variant="ghost" onClick={onAddItem}>
                 Add Item
             </Button>

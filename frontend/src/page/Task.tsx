@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 
-// DnD
 import {
     DndContext,
     DragEndEvent,
@@ -21,7 +20,6 @@ import {
     sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
 
-// Components
 import Container from '../components/layouts/Container'
 import Items from '../components/layouts/Items'
 import Modal from '../components/Modal'
@@ -36,6 +34,7 @@ type DNDType = {
     items: {
         id: UniqueIdentifier
         title: string
+        description: string
     }[]
 }
 
@@ -48,75 +47,81 @@ export default function Home() {
     const [itemName, setItemName] = useState('')
     const [showAddContainerModal, setShowAddContainerModal] = useState(false)
     const [showAddItemModal, setShowAddItemModal] = useState(false)
-    const { register, handleSubmit, reset } = useForm()
+    const { register, handleSubmit, setValue, reset } = useForm()
+    const [selectedItem, setSelectedItem] = useState(null)
 
     const token =
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTcyMDYxOTA1OCwianRpIjoiNGNmMTZiZmEtN2M1MS00ZDFhLWI5NzUtNzAxMGFiYmRmZWYwIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6MSwibmJmIjoxNzIwNjE5MDU4LCJjc3JmIjoiYzRlNzllNmEtNWNiNy00Y2YyLWIyOTgtYzdmNjAxODNmOTY5IiwiZXhwIjoxNzIwNjE5OTU4fQ.zKdmmYal5eXwJQzU-kkv8mzTYJYidqynq8PfYAy9TkE'
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTcyMDY4OTAwMCwianRpIjoiZmFjNGEyZjAtM2NhMy00Mzc4LTljMWEtZDE1MjA4ODViNGJkIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6MSwibmJmIjoxNzIwNjg5MDAwLCJjc3JmIjoiYzBkMjA0YWEtMTU2ZS00NTQ4LTlkY2YtMjJlYWI2ZDM5YTIyIiwiZXhwIjoxNzIwNjg5OTAwfQ.VQJ1kvPVH1MG189S0EqVgd0tQLnPo9qi-wJozaS7lwo'
     const headers = {
+        'Content-Type': 'application/json',
         Authorization: 'Bearer ' + token,
     }
+
+    const handleItemClick = (item: any, status_id: UniqueIdentifier) => {
+        item.status_id = status_id
+        setSelectedItem(item)
+        setShowAddItemModal(true)
+        reset(item)
+    }
+
+    useEffect(() => {
+        setValue('status_id', currentContainerId)
+    }, [currentContainerId, setValue])
 
     const onSubmit = async (data: any) => {
         try {
             console.log(data)
-            const url = 'http://127.0.0.1:5000/tasks'
-            const response = await axios.post(url, data, { headers })
-            console.log('response', response)
 
-            // Assuming you have containers state and setContainers function defined somewhere
-            // Copy the current state of containers
-            const updatedContainers = [...containers]
-
-            // Assuming you have a way to get the current container id
-            const currentContainer = updatedContainers.find(
-                (item) => item.id === currentContainerId
+            data.status_id = parseInt(
+                data.status_id.replace('container-', ''),
+                10
             )
 
-            if (currentContainer) {
-                // Add the new item to the current container
-                currentContainer.items.push({
-                    id: response.data.data.id,
-                    title: response.data.data.title,
-                })
+            let response
+            if (data.id) {
+                let { id, ...requestData } = data
 
-                // Update the containers state with the updated container
-                setContainers(updatedContainers)
-                reset() // Reset form fields
-                setShowAddItemModal(false) // Close the modal after adding the item
+                id = id = parseInt(id.replace('item-', ''), 10)
+                const url = `http://127.0.0.1:5000/tasks/${id}`
+                response = await axios.put(url, requestData, { headers })
             } else {
-                console.error('Current container not found')
+                const url = 'http://127.0.0.1:5000/tasks'
+                response = await axios.post(url, data, { headers })
             }
+
+            reset({ title: '', description: '', status_id: '' })
+            fetchData()
+            setShowAddItemModal(false)
         } catch (error) {
             console.error('Error adding item:', error)
-            // Handle error scenarios here
+        }
+    }
+
+    const fetchData = async () => {
+        try {
+            const response = await axios.get('http://127.0.0.1:5000/statuses', {
+                headers,
+            })
+
+            const data = response.data
+            console.log(data.data)
+
+            const formattedData = data.data.map((container: any) => ({
+                id: `container-${container.id}`,
+                title: container.name,
+                items: container.tasks.map((item: any) => ({
+                    id: `item-${item.id}`,
+                    title: item.title,
+                    description: item.description,
+                })),
+            }))
+            setContainers(formattedData)
+        } catch (error) {
+            console.error('Error fetching data:', error)
         }
     }
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await axios.get(
-                    'http://127.0.0.1:5000/statuses',
-                    { headers }
-                )
-
-                const data = response.data
-                console.log(data.data)
-
-                const formattedData = data.data.map((container: any) => ({
-                    id: `container-${container.id}`,
-                    title: container.name,
-                    items: container.tasks.map((item: any) => ({
-                        id: `item-${item.id}`,
-                        title: item.title,
-                    })),
-                }))
-                setContainers(formattedData)
-            } catch (error) {
-                console.error('Error fetching data:', error)
-            }
-        }
-
         fetchData()
     }, [])
 
@@ -149,33 +154,6 @@ export default function Home() {
         } catch (error) {
             console.error('Error:', error)
         }
-    }
-
-    const onAddItem = async () => {
-        if (!itemName) return
-
-        const body = {
-            title: 'makan pagi',
-            description: 'harus makan sebelum jam 10',
-            status_id: 1,
-        }
-
-        const response = await axios.post('http://127.0.0.1:5000/tasks', body, {
-            headers,
-        })
-
-        const id = `item-${uuidv4()}`
-        const container = containers.find(
-            (item) => item.id === currentContainerId
-        )
-        if (!container) return
-        container.items.push({
-            id,
-            title: itemName,
-        })
-        setContainers([...containers])
-        setItemName('')
-        setShowAddItemModal(false)
     }
 
     // Find the value of the items
@@ -484,11 +462,10 @@ export default function Home() {
                         {...register('description')}
                         className="input-field"
                     />
-                    <input
-                        type="number"
+                    <Input
+                        type="hidden"
                         placeholder="Status ID"
-                        // value={currentContainerId}
-                        {...register('status_id', { valueAsNumber: true })}
+                        {...register('status_id')}
                         className="input-field"
                     />
                     <Button type="submit" className="btn-primary">
@@ -529,8 +506,16 @@ export default function Home() {
                                             {container.items.map((i) => (
                                                 <Items
                                                     title={i.title}
+                                                    description={i.description}
+                                                    status_id={container.id}
                                                     id={i.id}
                                                     key={i.id}
+                                                    onClick={() =>
+                                                        handleItemClick(
+                                                            i,
+                                                            container.id
+                                                        )
+                                                    }
                                                 />
                                             ))}
                                         </div>
@@ -545,6 +530,11 @@ export default function Home() {
                                     <Items
                                         id={activeId}
                                         title={findItemTitle(activeId)}
+                                        status_id={activeId}
+                                        description={''}
+                                        onClick={() =>
+                                            handleItemClick(activeId, activeId)
+                                        }
                                     />
                                 )}
                             {/* Drag Overlay For Container */}
@@ -559,7 +549,15 @@ export default function Home() {
                                                 <Items
                                                     key={i.id}
                                                     title={i.title}
+                                                    status_id={activeId}
+                                                    description={''}
                                                     id={i.id}
+                                                    onClick={() =>
+                                                        handleItemClick(
+                                                            i,
+                                                            activeId
+                                                        )
+                                                    }
                                                 />
                                             )
                                         )}

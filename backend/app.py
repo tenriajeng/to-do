@@ -15,15 +15,15 @@ def create_app():
     app.config.from_object(Config)
     app.config['JWT_SECRET_KEY'] = 'your_jwt_secret_key'
     jwt = JWTManager(app)
-    # CORS(app,
-    #      origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    #      supports_credentials=True,
-    #      methods=["*"],
-    #      resources={r"/*": {"origins": "*"}},
-    #      allow_headers=['Content-Type', 'Authorization', 'XCSRF-Token']
-    # )
+    CORS(app,
+         origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+         supports_credentials=True,
+         methods=["*"],
+         resources={r"/*": {"origins": "*"}},
+         allow_headers=['Content-Type', 'Authorization', 'XCSRF-Token']
+    )
 
-    CORS(app, resources={r"/": {"origins": "http://localhost:3000"}})
+    # CORS(app,resources={r"/*": {"origins": "*"}})
     
     db.init_app(app)
     Migrate(app, db)
@@ -34,9 +34,9 @@ def create_app():
         db.create_all()
 
     # Custom 404 error handler
-    @app.errorhandler(404)
-    def page_not_found(e):
-        return jsonify(error="Page not found"), 404
+    # @app.errorhandler(404)
+    # def page_not_found(e):
+    #     return jsonify(error="Page not found"), 404
     return app
 
 def register_blueprints(app):
