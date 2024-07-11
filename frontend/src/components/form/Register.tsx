@@ -15,8 +15,8 @@ const RegisterForm: React.FC = () => {
     const navigate = useNavigate()
 
     const initialValues: FormData = {
-        email: '',
-        password: '',
+        email: 'ilham2@mail.com',
+        password: 'ilham123',
     }
 
     const validationSchema = Yup.object().shape({
